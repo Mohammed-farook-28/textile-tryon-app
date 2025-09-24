@@ -1,0 +1,63 @@
+# Development Environment Configuration
+# Copy this file and rename to application-local.yml for local development
+# DO NOT commit actual API keys to version control
+
+spring:
+  profiles:
+    active: dev
+  
+  # Database Configuration for Development
+  datasource:
+    url: jdbc:mysql://localhost:3306/textile_tryon
+    username: root
+    password: password
+    driver-class-name: com.mysql.cj.jdbc.Driver
+  
+  # JPA Configuration for Development
+  jpa:
+    hibernate:
+      ddl-auto: update
+    show-sql: true
+    properties:
+      hibernate:
+        format_sql: true
+
+# AI API Configuration
+ai:
+  flux:
+    api-key: c037aced-dc2e-4c44-9a3a-405741a274cd
+    api-url: https://api.flux.ai/v1/
+    timeout: 60000
+  google:
+    gemini:
+      api-key: AIzaSyArpY6cRzLdnMh5kIWjws5j0-thX_Liyaw
+      api-url: https://generativelanguage.googleapis.com/v1beta/
+      model: gemini-2.0-flash
+      timeout: 60000
+
+# AWS Configuration (Replace with your actual AWS credentials)
+aws:
+  access-key: your_aws_access_key_here
+  secret-key: your_aws_secret_key_here
+  region: us-east-1
+  s3:
+    bucket-name: textile-images-dev
+    base-url: https://textile-images-dev.s3.us-east-1.amazonaws.com
+
+# CORS Configuration for Development
+app:
+  cors:
+    allowed-origins: http://localhost:3000,http://127.0.0.1:3000
+    allowed-methods: GET,POST,PUT,DELETE,OPTIONS
+    allowed-headers: "*"
+    allow-credentials: true
+
+# Logging Configuration for Development
+logging:
+  level:
+    com.textiletryon: DEBUG
+    org.springframework.web: DEBUG
+    org.hibernate.SQL: DEBUG
+    org.hibernate.type.descriptor.sql.BasicBinder: TRACE
+  pattern:
+    console: "%d{yyyy-MM-dd HH:mm:ss} [%thread] %-5level %logger{36} - %msg%n"
