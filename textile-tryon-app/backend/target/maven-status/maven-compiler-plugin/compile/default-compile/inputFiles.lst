@@ -1,33 +1,33 @@
-D:\Private\Textile tryon\textile-tryon-app\backend\src\main\java\com\textiletryon\config\AwsConfig.java
-D:\Private\Textile tryon\textile-tryon-app\backend\src\main\java\com\textiletryon\config\CorsConfig.java
-D:\Private\Textile tryon\textile-tryon-app\backend\src\main\java\com\textiletryon\config\OpenApiConfig.java
-D:\Private\Textile tryon\textile-tryon-app\backend\src\main\java\com\textiletryon\config\WebClientConfig.java
-D:\Private\Textile tryon\textile-tryon-app\backend\src\main\java\com\textiletryon\controller\FavoriteController.java
-D:\Private\Textile tryon\textile-tryon-app\backend\src\main\java\com\textiletryon\controller\GarmentController.java
-D:\Private\Textile tryon\textile-tryon-app\backend\src\main\java\com\textiletryon\controller\TestController.java
-D:\Private\Textile tryon\textile-tryon-app\backend\src\main\java\com\textiletryon\controller\TryOnController.java
-D:\Private\Textile tryon\textile-tryon-app\backend\src\main\java\com\textiletryon\controller\UserController.java
-D:\Private\Textile tryon\textile-tryon-app\backend\src\main\java\com\textiletryon\dto\ApiResponse.java
-D:\Private\Textile tryon\textile-tryon-app\backend\src\main\java\com\textiletryon\dto\GarmentDto.java
-D:\Private\Textile tryon\textile-tryon-app\backend\src\main\java\com\textiletryon\dto\GarmentFilterDto.java
-D:\Private\Textile tryon\textile-tryon-app\backend\src\main\java\com\textiletryon\dto\TryonRequestDto.java
-D:\Private\Textile tryon\textile-tryon-app\backend\src\main\java\com\textiletryon\dto\TryonResultDto.java
-D:\Private\Textile tryon\textile-tryon-app\backend\src\main\java\com\textiletryon\dto\UserPhotoDto.java
-D:\Private\Textile tryon\textile-tryon-app\backend\src\main\java\com\textiletryon\model\Favorite.java
-D:\Private\Textile tryon\textile-tryon-app\backend\src\main\java\com\textiletryon\model\Garment.java
-D:\Private\Textile tryon\textile-tryon-app\backend\src\main\java\com\textiletryon\model\GarmentImage.java
-D:\Private\Textile tryon\textile-tryon-app\backend\src\main\java\com\textiletryon\model\TryonResult.java
-D:\Private\Textile tryon\textile-tryon-app\backend\src\main\java\com\textiletryon\model\UserPhoto.java
-D:\Private\Textile tryon\textile-tryon-app\backend\src\main\java\com\textiletryon\model\UserProfile.java
-D:\Private\Textile tryon\textile-tryon-app\backend\src\main\java\com\textiletryon\repository\FavoriteRepository.java
-D:\Private\Textile tryon\textile-tryon-app\backend\src\main\java\com\textiletryon\repository\GarmentImageRepository.java
-D:\Private\Textile tryon\textile-tryon-app\backend\src\main\java\com\textiletryon\repository\GarmentRepository.java
-D:\Private\Textile tryon\textile-tryon-app\backend\src\main\java\com\textiletryon\repository\TryonResultRepository.java
-D:\Private\Textile tryon\textile-tryon-app\backend\src\main\java\com\textiletryon\repository\UserPhotoRepository.java
-D:\Private\Textile tryon\textile-tryon-app\backend\src\main\java\com\textiletryon\repository\UserProfileRepository.java
-D:\Private\Textile tryon\textile-tryon-app\backend\src\main\java\com\textiletryon\service\AITryOnService.java
-D:\Private\Textile tryon\textile-tryon-app\backend\src\main\java\com\textiletryon\service\FavoriteService.java
-D:\Private\Textile tryon\textile-tryon-app\backend\src\main\java\com\textiletryon\service\GarmentService.java
-D:\Private\Textile tryon\textile-tryon-app\backend\src\main\java\com\textiletryon\service\S3Service.java
-D:\Private\Textile tryon\textile-tryon-app\backend\src\main\java\com\textiletryon\service\UserSessionService.java
-D:\Private\Textile tryon\textile-tryon-app\backend\src\main\java\com\textiletryon\TextileTryonApplication.java
+C:\Users\bot\Desktop\Projects\textile-tryon-app\textile-tryon-app\backend\src\main\java\com\textiletryon\config\AwsConfig.java
+C:\Users\bot\Desktop\Projects\textile-tryon-app\textile-tryon-app\backend\src\main\java\com\textiletryon\config\CorsConfig.java
+C:\Users\bot\Desktop\Projects\textile-tryon-app\textile-tryon-app\backend\src\main\java\com\textiletryon\config\OpenApiConfig.java
+C:\Users\bot\Desktop\Projects\textile-tryon-app\textile-tryon-app\backend\src\main\java\com\textiletryon\config\WebClientConfig.java
+C:\Users\bot\Desktop\Projects\textile-tryon-app\textile-tryon-app\backend\src\main\java\com\textiletryon\controller\FavoriteController.java
+C:\Users\bot\Desktop\Projects\textile-tryon-app\textile-tryon-app\backend\src\main\java\com\textiletryon\controller\GarmentController.java
+C:\Users\bot\Desktop\Projects\textile-tryon-app\textile-tryon-app\backend\src\main\java\com\textiletryon\controller\TestController.java
+C:\Users\bot\Desktop\Projects\textile-tryon-app\textile-tryon-app\backend\src\main\java\com\textiletryon\controller\TryOnController.java
+C:\Users\bot\Desktop\Projects\textile-tryon-app\textile-tryon-app\backend\src\main\java\com\textiletryon\controller\UserController.java
+C:\Users\bot\Desktop\Projects\textile-tryon-app\textile-tryon-app\backend\src\main\java\com\textiletryon\dto\ApiResponse.java
+C:\Users\bot\Desktop\Projects\textile-tryon-app\textile-tryon-app\backend\src\main\java\com\textiletryon\dto\GarmentDto.java
+C:\Users\bot\Desktop\Projects\textile-tryon-app\textile-tryon-app\backend\src\main\java\com\textiletryon\dto\GarmentFilterDto.java
+C:\Users\bot\Desktop\Projects\textile-tryon-app\textile-tryon-app\backend\src\main\java\com\textiletryon\dto\TryonRequestDto.java
+C:\Users\bot\Desktop\Projects\textile-tryon-app\textile-tryon-app\backend\src\main\java\com\textiletryon\dto\TryonResultDto.java
+C:\Users\bot\Desktop\Projects\textile-tryon-app\textile-tryon-app\backend\src\main\java\com\textiletryon\dto\UserPhotoDto.java
+C:\Users\bot\Desktop\Projects\textile-tryon-app\textile-tryon-app\backend\src\main\java\com\textiletryon\model\Favorite.java
+C:\Users\bot\Desktop\Projects\textile-tryon-app\textile-tryon-app\backend\src\main\java\com\textiletryon\model\Garment.java
+C:\Users\bot\Desktop\Projects\textile-tryon-app\textile-tryon-app\backend\src\main\java\com\textiletryon\model\GarmentImage.java
+C:\Users\bot\Desktop\Projects\textile-tryon-app\textile-tryon-app\backend\src\main\java\com\textiletryon\model\TryonResult.java
+C:\Users\bot\Desktop\Projects\textile-tryon-app\textile-tryon-app\backend\src\main\java\com\textiletryon\model\UserPhoto.java
+C:\Users\bot\Desktop\Projects\textile-tryon-app\textile-tryon-app\backend\src\main\java\com\textiletryon\model\UserProfile.java
+C:\Users\bot\Desktop\Projects\textile-tryon-app\textile-tryon-app\backend\src\main\java\com\textiletryon\repository\FavoriteRepository.java
+C:\Users\bot\Desktop\Projects\textile-tryon-app\textile-tryon-app\backend\src\main\java\com\textiletryon\repository\GarmentImageRepository.java
+C:\Users\bot\Desktop\Projects\textile-tryon-app\textile-tryon-app\backend\src\main\java\com\textiletryon\repository\GarmentRepository.java
+C:\Users\bot\Desktop\Projects\textile-tryon-app\textile-tryon-app\backend\src\main\java\com\textiletryon\repository\TryonResultRepository.java
+C:\Users\bot\Desktop\Projects\textile-tryon-app\textile-tryon-app\backend\src\main\java\com\textiletryon\repository\UserPhotoRepository.java
+C:\Users\bot\Desktop\Projects\textile-tryon-app\textile-tryon-app\backend\src\main\java\com\textiletryon\repository\UserProfileRepository.java
+C:\Users\bot\Desktop\Projects\textile-tryon-app\textile-tryon-app\backend\src\main\java\com\textiletryon\service\AITryOnService.java
+C:\Users\bot\Desktop\Projects\textile-tryon-app\textile-tryon-app\backend\src\main\java\com\textiletryon\service\FavoriteService.java
+C:\Users\bot\Desktop\Projects\textile-tryon-app\textile-tryon-app\backend\src\main\java\com\textiletryon\service\GarmentService.java
+C:\Users\bot\Desktop\Projects\textile-tryon-app\textile-tryon-app\backend\src\main\java\com\textiletryon\service\S3Service.java
+C:\Users\bot\Desktop\Projects\textile-tryon-app\textile-tryon-app\backend\src\main\java\com\textiletryon\service\UserSessionService.java
+C:\Users\bot\Desktop\Projects\textile-tryon-app\textile-tryon-app\backend\src\main\java\com\textiletryon\TextileTryonApplication.java

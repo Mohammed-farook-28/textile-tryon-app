@@ -5,17 +5,18 @@ spring:
   profiles:
     active: local
   
-  # Database Configuration (CHANGE THESE)
+  # Database Configuration (Using H2 for quick setup)
   datasource:
-    url: jdbc:mysql://localhost:3306/textile_tryon
-    username: root  # Change to your MySQL username
-    password: Inai@2025 # Change to your MySQL password
-    driver-class-name: com.mysql.cj.jdbc.Driver
+    url: jdbc:h2:mem:testdb
+    username: sa
+    password: 
+    driver-class-name: org.h2.Driver
   
   # JPA Configuration
   jpa:
     hibernate:
-      ddl-auto: validate
+      ddl-auto: create-drop
+    database-platform: org.hibernate.dialect.H2Dialect
     show-sql: true
     properties:
       hibernate:
@@ -30,7 +31,6 @@ aws:
     bucket-name: textile-images-dev  # Create this bucket in AWS S3
     base-url: https://textile-images-dev.s3.us-east-1.amazonaws.com
 
-# AI API Configuration (ALREADY CONFIGURED ✅)
 ai:
   flux:
     api-key: c037aced-dc2e-4c44-9a3a-405741a274cd

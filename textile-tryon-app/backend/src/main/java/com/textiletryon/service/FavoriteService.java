@@ -245,7 +245,10 @@ public class FavoriteService {
      * @return List of trending garment IDs
      */
     public List<Long> getTrendingGarments(int days, int limit) {
-        return favoriteRepository.findTrendingGarments(days, limit);
+        List<Long> trendingGarments = favoriteRepository.findTrendingGarments(days);
+        return trendingGarments.stream()
+                .limit(limit)
+                .collect(Collectors.toList());
     }
     
     /**

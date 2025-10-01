@@ -224,9 +224,8 @@ public interface FavoriteRepository extends JpaRepository<Favorite, Long> {
     /**
      * Get trending garments based on recent favorites
      * @param days number of days to consider for trending calculation
-     * @param limit maximum number of results
      * @return list of trending garment IDs
      */
     @Query("SELECT f.garment.id FROM Favorite f WHERE f.createdAt >= CURRENT_TIMESTAMP - :days DAY GROUP BY f.garment.id ORDER BY COUNT(f) DESC")
-    List<Long> findTrendingGarments(@Param("days") int days, @Param("limit") int limit);
+    List<Long> findTrendingGarments(@Param("days") int days);
 }

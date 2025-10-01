@@ -2,12 +2,12 @@ spring:
   application:
     name: textile-tryon-backend
   
-  # Database Configuration
+  # Database Configuration (Using H2 for development)
   datasource:
-    url: ${DB_URL:jdbc:mysql://localhost:3306/textile_tryon}
-    username: ${DB_USERNAME:root}
-    password: ${DB_PASSWORD:password}
-    driver-class-name: com.mysql.cj.jdbc.Driver
+    url: ${DB_URL:jdbc:h2:mem:testdb}
+    username: ${DB_USERNAME:sa}
+    password: ${DB_PASSWORD:}
+    driver-class-name: org.h2.Driver
     hikari:
       maximum-pool-size: 20
       minimum-idle: 5
@@ -18,13 +18,13 @@ spring:
   # JPA Configuration
   jpa:
     hibernate:
-      ddl-auto: validate
+      ddl-auto: create-drop
       naming:
         physical-strategy: org.hibernate.boot.model.naming.PhysicalNamingStrategyStandardImpl
-    show-sql: false
+    show-sql: true
+    database-platform: org.hibernate.dialect.H2Dialect
     properties:
       hibernate:
-        dialect: org.hibernate.dialect.MySQLDialect
         format_sql: true
         use_sql_comments: true
         jdbc:
