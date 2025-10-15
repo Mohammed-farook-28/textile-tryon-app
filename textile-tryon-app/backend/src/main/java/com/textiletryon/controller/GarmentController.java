@@ -13,6 +13,7 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.multipart.MultipartFile;
 
+import java.math.BigDecimal;
 import java.util.List;
 
 /**
@@ -49,6 +50,9 @@ public class GarmentController {
             @RequestParam(defaultValue = "20") int size) {
         
         try {
+            log.debug("Search parameters - searchTerm: {}, categories: {}, colors: {}, minPrice: {}, maxPrice: {}", 
+                     searchTerm, categories, colors, minPrice, maxPrice);
+            
             GarmentFilterDto filter = GarmentFilterDto.builder()
                     .searchTerm(searchTerm)
                     .categories(categories)
@@ -184,136 +188,15 @@ public class GarmentController {
      * GET /api/garments/filters/price-range
      */
     @GetMapping("/filters/price-range")
-    public ResponseEntity<ApiResponse<java.math.BigDecimal[]>> getPriceRange() {
+    public ResponseEntity<ApiResponse<com.textiletryon.dto.PriceRangeDto>> getPriceRange() {
         try {
-            java.math.BigDecimal[] priceRange = garmentService.getPriceRange();
+            com.textiletryon.dto.PriceRangeDto priceRange = garmentService.getPriceRange();
             return ResponseEntity.ok(ApiResponse.success(priceRange, "Price range retrieved successfully"));
             
         } catch (Exception e) {
             log.error("Error getting price range: {}", e.getMessage(), e);
             return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
                     .body(ApiResponse.error("Error retrieving price range: " + e.getMessage()));
-        }
-    }
-}
-
-/**
- * Admin Controller for garment management
- */
-@RestController
-@RequestMapping("/admin/garments")
-@RequiredArgsConstructor
-@Slf4j
-@CrossOrigin(origins = "${app.cors.allowed-origins}")
-class AdminGarmentController {
-    
-    private final GarmentService garmentService;
-    
-    /**
-     * Create a new garment
-     * POST /api/admin/garments
-     */
-    @PostMapping
-    public ResponseEntity<ApiResponse<GarmentDto>> createGarment(@Valid @RequestBody GarmentDto garmentDto) {
-        try {
-            GarmentDto createdGarment = garmentService.createGarment(garmentDto);
-            return ResponseEntity.status(HttpStatus.CREATED)
-                    .body(ApiResponse.success(createdGarment, "Garment created successfully"));
-            
-        } catch (IllegalArgumentException e) {
-            return ResponseEntity.status(HttpStatus.BAD_REQUEST)
-                    .body(ApiResponse.error(e.getMessage(), "VALIDATION_ERROR"));
-        } catch (Exception e) {
-            log.error("Error creating garment: {}", e.getMessage(), e);
-            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
-                    .body(ApiResponse.error("Error creating garment: " + e.getMessage()));
-        }
-    }
-    
-    /**
-     * Update an existing garment
-     * PUT /api/admin/garments/{id}
-     */
-    @PutMapping("/{id}")
-    public ResponseEntity<ApiResponse<GarmentDto>> updateGarment(
-            @PathVariable Long id, 
-            @Valid @RequestBody GarmentDto garmentDto) {
-        try {
-            GarmentDto updatedGarment = garmentService.updateGarment(id, garmentDto);
-            return ResponseEntity.ok(ApiResponse.success(updatedGarment, "Garment updated successfully"));
-            
-        } catch (IllegalArgumentException e) {
-            return ResponseEntity.status(HttpStatus.BAD_REQUEST)
-                    .body(ApiResponse.error(e.getMessage(), "VALIDATION_ERROR"));
-        } catch (Exception e) {
-            log.error("Error updating garment {}: {}", id, e.getMessage(), e);
-            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
-                    .body(ApiResponse.error("Error updating garment: " + e.getMessage()));
-        }
-    }
-    
-    /**
-     * Delete a garment
-     * DELETE /api/admin/garments/{id}
-     */
-    @DeleteMapping("/{id}")
-    public ResponseEntity<ApiResponse<Void>> deleteGarment(@PathVariable Long id) {
-        try {
-            garmentService.deleteGarment(id);
-            return ResponseEntity.ok(ApiResponse.success("Garment deleted successfully"));
-            
-        } catch (IllegalArgumentException e) {
-            return ResponseEntity.status(HttpStatus.NOT_FOUND)
-                    .body(ApiResponse.error("Garment not found", "GARMENT_NOT_FOUND"));
-        } catch (Exception e) {
-            log.error("Error deleting garment {}: {}", id, e.getMessage(), e);
-            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
-                    .body(ApiResponse.error("Error deleting garment: " + e.getMessage()));
-        }
-    }
-    
-    /**
-     * Add image to garment
-     * POST /api/admin/garments/{id}/images
-     */
-    @PostMapping("/{id}/images")
-    public ResponseEntity<ApiResponse<String>> addGarmentImage(
-            @PathVariable Long id,
-            @RequestParam("image") MultipartFile imageFile,
-            @RequestParam(defaultValue = "false") boolean isPrimary) {
-        try {
-            garmentService.addGarmentImage(id, imageFile, isPrimary);
-            return ResponseEntity.ok(ApiResponse.success("Image added successfully"));
-            
-        } catch (IllegalArgumentException e) {
-            return ResponseEntity.status(HttpStatus.BAD_REQUEST)
-                    .body(ApiResponse.error(e.getMessage(), "VALIDATION_ERROR"));
-        } catch (Exception e) {
-            log.error("Error adding image to garment {}: {}", id, e.getMessage(), e);
-            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
-                    .body(ApiResponse.error("Error adding image: " + e.getMessage()));
-        }
-    }
-    
-    /**
-     * Remove image from garment
-     * DELETE /api/admin/garments/{garmentId}/images/{imageId}
-     */
-    @DeleteMapping("/{garmentId}/images/{imageId}")
-    public ResponseEntity<ApiResponse<String>> removeGarmentImage(
-            @PathVariable Long garmentId,
-            @PathVariable Long imageId) {
-        try {
-            garmentService.removeGarmentImage(garmentId, imageId);
-            return ResponseEntity.ok(ApiResponse.success("Image removed successfully"));
-            
-        } catch (IllegalArgumentException e) {
-            return ResponseEntity.status(HttpStatus.BAD_REQUEST)
-                    .body(ApiResponse.error(e.getMessage(), "VALIDATION_ERROR"));
-        } catch (Exception e) {
-            log.error("Error removing image {} from garment {}: {}", imageId, garmentId, e.getMessage(), e);
-            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
-                    .body(ApiResponse.error("Error removing image: " + e.getMessage()));
         }
     }
 }

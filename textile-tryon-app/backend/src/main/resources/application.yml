@@ -4,7 +4,7 @@ spring:
   
   # Database Configuration (Using H2 for development)
   datasource:
-    url: ${DB_URL:jdbc:h2:mem:testdb}
+    url: ${DB_URL:jdbc:h2:mem:testdb;DB_CLOSE_ON_EXIT=FALSE;MODE=MySQL}
     username: ${DB_USERNAME:sa}
     password: ${DB_PASSWORD:}
     driver-class-name: org.h2.Driver
@@ -31,6 +31,9 @@ spring:
           batch_size: 20
         order_inserts: true
         order_updates: true
+        hbm2ddl:
+          auto: create-drop
+          create_namespaces: true
   
   # Multipart Configuration for File Uploads
   servlet:
@@ -56,24 +59,20 @@ server:
 
 # AWS Configuration
 aws:
-  access-key: ${AWS_ACCESS_KEY:your_access_key}
-  secret-key: ${AWS_SECRET_KEY:your_secret_key}
+  access-key: ${AWS_ACCESS_KEY_ID}
+  secret-key: ${AWS_SECRET_ACCESS_KEY}
   region: ${AWS_REGION:us-east-1}
   s3:
     bucket-name: ${AWS_BUCKET_NAME:textile-images}
     base-url: https://${aws.s3.bucket-name}.s3.${aws.region}.amazonaws.com
 
-# AI API Configuration
+# AI API Configuration - Using Gemini only
 ai:
-  flux:
-    api-key: ${FLUX_API_KEY:your_flux_api_key}
-    api-url: ${FLUX_API_URL:https://api.flux.ai/v1/}
-    timeout: 60000
   google:
     gemini:
-      api-key: ${GOOGLE_GEMINI_API_KEY:your_google_api_key}
+      api-key: ${GOOGLE_GEMINI_API_KEY}
       api-url: ${GOOGLE_GEMINI_API_URL:https://generativelanguage.googleapis.com/v1beta/}
-      model: ${GOOGLE_GEMINI_MODEL:gemini-2.0-flash}
+      model: ${GOOGLE_GEMINI_MODEL:gemini-2.5-flash-image}
       timeout: 60000
 
 # Application Configuration

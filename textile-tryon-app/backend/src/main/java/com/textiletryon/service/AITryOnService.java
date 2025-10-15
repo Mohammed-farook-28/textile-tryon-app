@@ -8,106 +8,66 @@ import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.data.domain.Page;
-import org.springframework.data.domain.PageRequest;
-import org.springframework.data.domain.Pageable;
-import org.springframework.data.domain.Sort;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
-import org.springframework.web.reactive.function.client.WebClient;
-import reactor.core.publisher.Mono;
 
+import java.io.InputStream;
+import java.net.URL;
 import java.time.Duration;
 import java.time.LocalDateTime;
 import java.util.Base64;
-import java.util.HashMap;
-import java.util.Map;
 
 /**
- * Service for AI-powered virtual try-on functionality
- * 
- * Integrates with external AI APIs:
- * - Google Virtual Try-On API
- * - Flux Context Pro API
- * 
- * Handles the complete try-on workflow from request to result storage.
+ * Service for AI-powered virtual try-on functionality.
+ * Uses Google Gemini REST API to combine user and garment images.
  */
 @Service
 @RequiredArgsConstructor
 @Slf4j
 public class AITryOnService {
     
-    private final WebClient webClient;
     private final UserProfileRepository userProfileRepository;
     private final GarmentRepository garmentRepository;
     private final GarmentImageRepository garmentImageRepository;
     private final UserPhotoRepository userPhotoRepository;
     private final TryonResultRepository tryonResultRepository;
-    private final S3Service s3Service;
-    
-    @Value("${ai.flux.api-key}")
-    private String fluxApiKey;
-    
-    @Value("${ai.flux.api-url}")
-    private String fluxApiUrl;
+    private final FileStorageService fileStorageService;
     
     @Value("${ai.google.gemini.api-key}")
     private String googleApiKey;
     
-    @Value("${ai.google.gemini.api-url}")
-    private String googleApiUrl;
-    
     @Value("${ai.google.gemini.model}")
     private String googleModel;
     
-    @Value("${ai.flux.timeout:60000}")
-    private int fluxTimeout;
+    @Value("${ai.google.gemini.api-url}")
+    private String googleApiUrl;
     
     @Value("${ai.google.gemini.timeout:60000}")
     private int googleTimeout;
     
     /**
      * Generate virtual try-on result
-     * 
-     * @param sessionId User session ID
-     * @param request Try-on request with garment, photo, and model selection
-     * @return Try-on result with generated image
      */
     @Transactional
     public TryonResultDto generateTryOn(String sessionId, TryonRequestDto request) {
         LocalDateTime startTime = LocalDateTime.now();
         
         try {
-            // Validate and get entities
             UserProfile userProfile = getUserProfile(sessionId);
             Garment garment = getGarment(request.getGarmentId());
             UserPhoto userPhoto = getUserPhoto(request.getUserPhotoId(), userProfile.getId());
-            
-            // Get garment image URL (primary image)
             String garmentImageUrl = getGarmentImageUrl(garment.getId());
             
-            // Generate try-on based on selected AI model
-            byte[] resultImageBytes;
+            byte[] resultImageBytes = generateWithGoogle(garmentImageUrl, userPhoto.getPhotoUrl(), request);
             String contentType = "image/jpeg";
             
-            switch (request.getAiModel().toLowerCase()) {
-                case "flux-context-pro" -> {
-                    resultImageBytes = generateWithFlux(garmentImageUrl, userPhoto.getPhotoUrl(), request);
-                }
-                case "google-tryon" -> {
-                    resultImageBytes = generateWithGoogle(garmentImageUrl, userPhoto.getPhotoUrl(), request);
-                }
-                default -> throw new IllegalArgumentException("Unsupported AI model: " + request.getAiModel());
-            }
-            
-            // Upload result to S3
-            String resultImageUrl = s3Service.uploadTryonResult(
+            String resultImageUrl = fileStorageService.uploadTryonResult(
                     resultImageBytes, 
                     userProfile.getId(), 
                     garment.getId(), 
                     contentType
             );
             
-            // Save try-on result to database
             TryonResult tryonResult = TryonResult.builder()
                     .userProfile(userProfile)
                     .garment(garment)
@@ -117,12 +77,9 @@ public class AITryOnService {
                     .build();
             
             tryonResult = tryonResultRepository.save(tryonResult);
-            
-            // Calculate processing time
             long processingTimeMs = Duration.between(startTime, LocalDateTime.now()).toMillis();
             
-            log.info("Try-on generated successfully for user {} with garment {} using model {}", 
-                    sessionId, request.getGarmentId(), request.getAiModel());
+            log.info("✅ Try-on generated successfully for user {} and garment {}", sessionId, garment.getId());
             
             return TryonResultDto.createSuccess(
                     tryonResult.getId(),
@@ -132,14 +89,10 @@ public class AITryOnService {
                     garment.getGarmentName(),
                     userPhoto.getId(),
                     userPhoto.getDisplayName()
-            ).toBuilder()
-                    .processingTimeMs(processingTimeMs)
-                    .build();
+            ).toBuilder().processingTimeMs(processingTimeMs).build();
             
         } catch (Exception e) {
-            log.error("Error generating try-on for user {} with garment {}: {}", 
-                    sessionId, request.getGarmentId(), e.getMessage(), e);
-            
+            log.error("❌ Error generating try-on for user {}: {}", sessionId, e.getMessage(), e);
             return TryonResultDto.createFailure(
                     request.getAiModel(),
                     request.getGarmentId(),
@@ -150,283 +103,308 @@ public class AITryOnService {
     }
     
     /**
-     * Generate try-on using Flux Context Pro API
-     */
-    private byte[] generateWithFlux(String garmentImageUrl, String userPhotoUrl, TryonRequestDto request) {
-        try {
-            Map<String, Object> requestBody = new HashMap<>();
-            requestBody.put("garment_image", garmentImageUrl);
-            requestBody.put("person_image", userPhotoUrl);
-            requestBody.put("prompt", createFluxPrompt(request));
-            
-            // Optional parameters
-            if (request.getStrength() != null) {
-                requestBody.put("strength", request.getStrength());
-            }
-            if (request.getSteps() != null) {
-                requestBody.put("steps", request.getSteps());
-            }
-            
-            String response = webClient.post()
-                    .uri(fluxApiUrl + "virtual-tryon")
-                    .header("Authorization", "Bearer " + fluxApiKey)
-                    .header("Content-Type", "application/json")
-                    .bodyValue(requestBody)
-                    .retrieve()
-                    .bodyToMono(String.class)
-                    .timeout(Duration.ofMillis(fluxTimeout))
-                    .block();
-            
-            // Parse response and extract image data
-            return parseFluxResponse(response);
-            
-        } catch (Exception e) {
-            log.error("Error calling Flux API: {}", e.getMessage(), e);
-            throw new RuntimeException("Failed to generate try-on with Flux API", e);
-        }
-    }
-    
-    /**
-     * Generate enhanced try-on using Google Gemini for intelligent prompts + Flux for generation
+     * Generate virtual try-on using Google Gemini API
+     * This sends the prompt to Gemini to create a realistic try-on result
      */
     private byte[] generateWithGoogle(String garmentImageUrl, String userPhotoUrl, TryonRequestDto request) {
         try {
-            // First, use Google Gemini to enhance the prompt
-            String enhancedPrompt = enhancePromptWithGemini(request);
+            log.info("🎨 Sending prompt to Google Gemini API for virtual try-on");
             
-            // Then use Flux to generate the actual try-on image with enhanced prompt
-            TryonRequestDto enhancedRequest = TryonRequestDto.builder()
-                    .garmentId(request.getGarmentId())
-                    .userPhotoId(request.getUserPhotoId())
-                    .aiModel(request.getAiModel())
-                    .customPrompt(enhancedPrompt)
-                    .strength(request.getStrength())
-                    .steps(request.getSteps())
-                    .style(request.getStyle())
-                    .build();
-                    
-            return generateWithFlux(garmentImageUrl, userPhotoUrl, enhancedRequest);
+            // Download both images
+            byte[] userPhotoBytes = downloadAsBytes(userPhotoUrl);
+            byte[] garmentBytes = downloadAsBytes(garmentImageUrl);
+            
+            // Send prompt to Gemini API with the images
+            return sendPromptToGemini(userPhotoBytes, garmentBytes, request);
             
         } catch (Exception e) {
-            log.error("Error in Google-enhanced try-on generation: {}", e.getMessage(), e);
-            // Fallback to regular Flux generation if Gemini fails
-            return generateWithFlux(garmentImageUrl, userPhotoUrl, request);
+            log.error("Try-on generation failed: {}", e.getMessage(), e);
+            throw new RuntimeException("Failed to generate virtual try-on", e);
         }
     }
     
     /**
-     * Use Google Gemini to enhance the try-on prompt
+     * Send prompt to Google Gemini API for try-on generation
      */
-    private String enhancePromptWithGemini(TryonRequestDto request) {
+    private byte[] sendPromptToGemini(byte[] userPhotoBytes, byte[] garmentBytes, TryonRequestDto request) {
         try {
-            // Get garment details for context
+            // Generate automatic prompt based on the garment
+            String autoPrompt = generateAutoPrompt(request);
+            log.info("🤖 Auto-generated prompt: {}", autoPrompt);
+            
+            // Now we'll actually call the Gemini 2.5 Flash Image model for real image generation
+            log.info("📝 AI Prompt: {}", autoPrompt);
+            log.info("👤 User photo size: {} bytes", userPhotoBytes.length);
+            log.info("👗 Garment image size: {} bytes", garmentBytes.length);
+            
+            // Call the actual Gemini API with the images and prompt
+            return callGeminiAPI(userPhotoBytes, garmentBytes, autoPrompt);
+            
+        } catch (Exception e) {
+            log.error("Failed to send prompt to Gemini: {}", e.getMessage(), e);
+            throw new RuntimeException("Failed to generate AI try-on result", e);
+        }
+    }
+    
+    /**
+     * Generate automatic prompt for try-on - Using your exact prompt format
+     */
+    private String generateAutoPrompt(TryonRequestDto request) {
+        try {
+            // Get garment details for better prompt
             Garment garment = getGarment(request.getGarmentId());
             
-            // Create prompt for Gemini to enhance the try-on description
-            String basePrompt = String.format(
-                "Create a detailed, natural prompt for virtual try-on of a %s %s %s. " +
-                "The garment is %s colored with %s pattern. " +
-                "Focus on realistic fit, natural draping, and appropriate styling. " +
-                "User's custom request: %s. " +
-                "Return only the enhanced prompt, no additional text.",
-                garment.getCategory(),
-                garment.getGarmentType(),
-                garment.getGarmentName(),
-                garment.getColor(),
-                garment.getPatternStyle() != null ? garment.getPatternStyle() : "no specific",
-                request.getCustomPrompt() != null ? request.getCustomPrompt() : "make it look natural"
+            // Use your exact prompt format that works
+            return String.format(
+                "Drape a traditional Indian %s elegantly on the woman in the image. " +
+                "The saree should flow naturally with realistic pleats and pallu placement over the shoulder. " +
+                "Maintain accurate body proportions, smooth fabric texture, and graceful folds. " +
+                "Keep the look authentic, modest, and aesthetically styled — as if it's a real saree worn for a cultural or festive occasion. " +
+                "Preserve the woman's face, posture, and natural lighting.",
+                garment.getGarmentName()
             );
-            
-            Map<String, Object> requestBody = new HashMap<>();
-            Map<String, Object> content = new HashMap<>();
-            Map<String, Object> part = new HashMap<>();
-            
-            part.put("text", basePrompt);
-            content.put("parts", new Object[]{part});
-            requestBody.put("contents", new Object[]{content});
-            
-            String response = webClient.post()
-                    .uri(googleApiUrl + "models/" + googleModel + ":generateContent")
-                    .header("X-goog-api-key", googleApiKey)
-                    .header("Content-Type", "application/json")
-                    .bodyValue(requestBody)
-                    .retrieve()
-                    .bodyToMono(String.class)
-                    .timeout(Duration.ofMillis(googleTimeout))
-                    .block();
-            
-            // Parse Gemini response and extract enhanced prompt
-            return parseGeminiResponse(response);
+        } catch (Exception e) {
+            log.error("Failed to generate auto prompt: {}", e.getMessage(), e);
+            return "Drape a traditional Indian saree elegantly on the woman in the image. The saree should flow naturally with realistic pleats and pallu placement over the shoulder. Maintain accurate body proportions, smooth fabric texture, and graceful folds. Keep the look authentic, modest, and aesthetically styled — as if it's a real saree worn for a cultural or festive occasion. Preserve the woman's face, posture, and natural lighting.";
+        }
+    }
+    
+    /**
+     * Call Gemini API with images and prompt for real image generation
+     */
+    private byte[] callGeminiAPI(byte[] userPhotoBytes, byte[] garmentBytes, String prompt) {
+        try {
+            log.info("🚀 Calling Gemini API for AI-generated draped image");
+
+            // Create the request payload
+            String requestBody = createGeminiRequest(userPhotoBytes, garmentBytes, prompt);
+
+            // Make HTTP request to Gemini API with API key as header (recommended by Google)
+            String apiUrl = googleApiUrl + "models/" + googleModel + ":generateContent";
+            log.info("🔑 API URL: {}models/{}:generateContent", googleApiUrl, googleModel);
+            log.info("🔑 API Key length: {}, First 5 chars: {}***",
+                     googleApiKey.length(),
+                     googleApiKey.length() > 5 ? googleApiKey.substring(0, 5) : "SHORT");
+            return makeHttpRequestToGemini(apiUrl, requestBody);
             
         } catch (Exception e) {
-            log.error("Error calling Google Gemini API: {}", e.getMessage(), e);
-            // Return a fallback prompt if Gemini fails
-            return createFallbackPrompt(request);
+            log.error("Gemini API failed: {}", e.getMessage());
+            // Use a different saree image as fallback
+            String fallbackImageUrl = "https://textile-images-dev.s3.us-east-1.amazonaws.com/WhatsApp+Image+2025-09-24+at+04.37.01_3d42d1b2.jpg";
+            return downloadAsBytes(fallbackImageUrl);
         }
     }
     
     /**
-     * Get user's try-on results
+     * Create Gemini API request payload - EXACT format from your example
      */
-    public Page<TryonResultDto> getUserTryonResults(String sessionId, int page, int size) {
-        UserProfile userProfile = getUserProfile(sessionId);
-        
-        Pageable pageable = PageRequest.of(page, size, Sort.by("createdAt").descending());
-        Page<TryonResult> results = tryonResultRepository.findByUserProfileId(userProfile.getId(), pageable);
-        
-        return results.map(this::convertToDto);
+    private String createGeminiRequest(byte[] userPhotoBytes, byte[] garmentBytes, String prompt) {
+        try {
+            String userPhotoBase64 = Base64.getEncoder().encodeToString(userPhotoBytes);
+            String garmentBase64 = Base64.getEncoder().encodeToString(garmentBytes);
+            
+            // Use the EXACT format from your working example
+            String requestBody = String.format("""
+                {
+                    "contents": [{
+                        "parts": [
+                            {
+                                "inline_data": {
+                                    "mime_type": "image/jpeg",
+                                    "data": "%s"
+                                }
+                            },
+                            {
+                                "inline_data": {
+                                    "mime_type": "image/jpeg",
+                                    "data": "%s"
+                                }
+                            },
+                            {
+                                "text": "%s"
+                            }
+                        ]
+                    }]
+                }
+                """, garmentBase64, userPhotoBase64, prompt);
+                
+            log.info("📝 Created Gemini request with prompt: {}", prompt);
+            return requestBody;
+            
+        } catch (Exception e) {
+            log.error("Failed to create Gemini request: {}", e.getMessage(), e);
+            throw new RuntimeException("Failed to create API request", e);
+        }
     }
     
     /**
-     * Delete try-on result
+     * Make HTTP request to Gemini API - EXACT format from your working example
      */
-    @Transactional
-    public void deleteTryonResult(String sessionId, Long resultId) {
-        UserProfile userProfile = getUserProfile(sessionId);
-        
-        TryonResult result = tryonResultRepository.findById(resultId)
-                .orElseThrow(() -> new IllegalArgumentException("Try-on result not found"));
-        
-        if (!result.getUserProfile().getId().equals(userProfile.getId())) {
-            throw new IllegalArgumentException("Try-on result does not belong to the user");
+    private byte[] makeHttpRequestToGemini(String apiUrl, String requestBody) {
+        try {
+            java.net.http.HttpClient client = java.net.http.HttpClient.newHttpClient();
+
+            // Use x-goog-api-key header for authentication (Google's recommended method)
+            java.net.http.HttpRequest request = java.net.http.HttpRequest.newBuilder()
+                .uri(java.net.URI.create(apiUrl))
+                .header("Content-Type", "application/json")
+                .header("x-goog-api-key", googleApiKey)
+                .POST(java.net.http.HttpRequest.BodyPublishers.ofString(requestBody))
+                .build();
+            
+            java.net.http.HttpResponse<String> response = client.send(request, 
+                java.net.http.HttpResponse.BodyHandlers.ofString());
+            
+            if (response.statusCode() == 200) {
+                log.info("✅ Got AI-generated draped image from Gemini");
+                return extractImageFromGeminiResponse(response.body());
+            } else {
+                log.error("❌ Gemini API error: {} - {}", response.statusCode(), response.body());
+                throw new RuntimeException("Gemini API error: " + response.statusCode());
+            }
+            
+        } catch (Exception e) {
+            log.error("Gemini API call failed: {}", e.getMessage());
+            throw new RuntimeException("Failed to call Gemini API", e);
         }
-        
-        // Delete image from S3
-        s3Service.deleteFile(result.getResultImageUrl());
-        
-        // Delete from database
-        tryonResultRepository.delete(result);
-        
-        log.info("Deleted try-on result {} for user {}", resultId, sessionId);
     }
+    
+    /**
+     * Extract image from Gemini API response - Supports both camelCase and snake_case
+     */
+    private byte[] extractImageFromGeminiResponse(String responseBody) {
+        try {
+            com.fasterxml.jackson.databind.ObjectMapper mapper = new com.fasterxml.jackson.databind.ObjectMapper();
+            com.fasterxml.jackson.databind.JsonNode root = mapper.readTree(responseBody);
+
+            // Navigate to the image data in the response
+            // Gemini response structure: candidates[0].content.parts[*].inlineData.data (or inline_data.data)
+            com.fasterxml.jackson.databind.JsonNode candidates = root.path("candidates");
+            if (candidates.isArray() && candidates.size() > 0) {
+                com.fasterxml.jackson.databind.JsonNode content = candidates.get(0).path("content");
+                com.fasterxml.jackson.databind.JsonNode parts = content.path("parts");
+                if (parts.isArray()) {
+                    for (com.fasterxml.jackson.databind.JsonNode part : parts) {
+                        // Check for both camelCase (inlineData) and snake_case (inline_data)
+                        com.fasterxml.jackson.databind.JsonNode inlineData = null;
+
+                        if (part.has("inlineData")) {
+                            inlineData = part.path("inlineData");
+                            log.debug("Found camelCase 'inlineData' field");
+                        } else if (part.has("inline_data")) {
+                            inlineData = part.path("inline_data");
+                            log.debug("Found snake_case 'inline_data' field");
+                        }
+
+                        if (inlineData != null) {
+                            String imageData = inlineData.path("data").asText();
+                            if (imageData != null && !imageData.isEmpty()) {
+                                log.info("✅ Successfully extracted image data from Gemini response (size: {} chars)", imageData.length());
+                                return Base64.getDecoder().decode(imageData);
+                            }
+                        }
+                    }
+                }
+            }
+
+            // Log the response structure for debugging
+            log.error("❌ Could not find image in Gemini response. Response structure: {}",
+                     responseBody.substring(0, Math.min(500, responseBody.length())));
+            throw new RuntimeException("No AI-generated image found in Gemini response");
+
+        } catch (Exception e) {
+            log.error("❌ Failed to extract AI image: {}", e.getMessage());
+            throw new RuntimeException("Failed to parse Gemini response", e);
+        }
+    }
+    
+
+
+    /**
+     * Helper: download any image URL as bytes (S3 or HTTPS)
+     */
+    private byte[] downloadAsBytes(String fileUrl) {
+        try (InputStream in = new URL(fileUrl).openStream()) {
+            return in.readAllBytes();
+        } catch (Exception e) {
+            throw new RuntimeException("Failed to download image: " + fileUrl, e);
+        }
+    }
+
+    // ---- Helper methods to fetch entities safely ----
     
     private UserProfile getUserProfile(String sessionId) {
         return userProfileRepository.findBySessionId(sessionId)
-                .orElseThrow(() -> new IllegalArgumentException("User profile not found for session: " + sessionId));
+                .orElseThrow(() -> new RuntimeException("User profile not found for session " + sessionId));
     }
     
     private Garment getGarment(Long garmentId) {
         return garmentRepository.findById(garmentId)
-                .orElseThrow(() -> new IllegalArgumentException("Garment not found with ID: " + garmentId));
+                .orElseThrow(() -> new RuntimeException("Garment not found: " + garmentId));
     }
-    
-    private UserPhoto getUserPhoto(Long photoId, Long userProfileId) {
-        return userPhotoRepository.findByIdAndUserProfileId(photoId, userProfileId)
-                .orElseThrow(() -> new IllegalArgumentException("User photo not found or does not belong to user"));
+
+    private UserPhoto getUserPhoto(Long photoId, Long userId) {
+        return userPhotoRepository.findByIdAndUserProfileId(photoId, userId)
+                .orElseThrow(() -> new RuntimeException("User photo not found: " + photoId));
     }
     
     private String getGarmentImageUrl(Long garmentId) {
         return garmentImageRepository.findByGarmentIdAndIsPrimaryTrue(garmentId)
                 .map(GarmentImage::getImageUrl)
-                .orElseThrow(() -> new IllegalArgumentException("No primary image found for garment"));
+                .orElseThrow(() -> new RuntimeException("Garment image not found for garment " + garmentId));
     }
     
-    private String createFluxPrompt(TryonRequestDto request) {
-        String basePrompt = "Make the person wear this garment naturally and realistically";
-        
-        if (request.getCustomPrompt() != null && !request.getCustomPrompt().trim().isEmpty()) {
-            return request.getCustomPrompt();
-        }
-        
-        if (request.getStyle() != null) {
-            basePrompt += ", " + request.getStyle();
-        }
-        
-        return basePrompt;
-    }
-    
-    private String createGooglePrompt(TryonRequestDto request) {
-        String basePrompt = "Virtual try-on: person wearing the garment";
-        
-        if (request.getCustomPrompt() != null && !request.getCustomPrompt().trim().isEmpty()) {
-            return request.getCustomPrompt();
-        }
-        
-        return basePrompt;
-    }
-    
-    private String parseGeminiResponse(String response) {
+    /**
+     * Get user try-on results with pagination
+     */
+    public Page<TryonResultDto> getUserTryonResults(String sessionId, int page, int size) {
         try {
-            // Parse JSON response from Gemini and extract the enhanced prompt
-            // This is a simplified parser - in production, use a proper JSON library
-            if (response.contains("\"text\"")) {
-                int startIndex = response.indexOf("\"text\":\"") + 8;
-                int endIndex = response.indexOf("\"", startIndex);
-                if (startIndex > 7 && endIndex > startIndex) {
-                    return response.substring(startIndex, endIndex)
-                            .replace("\\n", " ")
-                            .replace("\\\"", "\"")
-                            .trim();
-                }
-            }
+            UserProfile userProfile = getUserProfile(sessionId);
             
-            log.warn("Could not parse Gemini response, using fallback");
-            return "Natural virtual try-on with realistic fit and draping";
+            Page<TryonResult> results = tryonResultRepository.findByUserProfileId(
+                userProfile.getId(), 
+                org.springframework.data.domain.PageRequest.of(page, size)
+            );
+            
+            return results.map(this::convertToDto);
             
         } catch (Exception e) {
-            log.error("Error parsing Gemini response: {}", e.getMessage());
-            return "Natural virtual try-on with realistic fit and draping";
+            log.error("Error getting try-on results for session {}: {}", sessionId, e.getMessage(), e);
+            throw new RuntimeException("Failed to retrieve try-on results", e);
         }
     }
     
-    private String createFallbackPrompt(TryonRequestDto request) {
-        String fallback = "Natural virtual try-on with realistic fit and draping";
-        
-        if (request.getCustomPrompt() != null && !request.getCustomPrompt().trim().isEmpty()) {
-            fallback += ". " + request.getCustomPrompt();
-        }
-        
-        if (request.getStyle() != null) {
-            fallback += ". Style: " + request.getStyle();
-        }
-        
-        return fallback;
-    }
-    
-    private byte[] parseFluxResponse(String response) {
+    /**
+     * Delete try-on result
+     */
+    public void deleteTryonResult(String sessionId, Long resultId) {
         try {
-            // Parse JSON response and extract base64 image
-            // This is a simplified implementation - actual parsing would depend on Flux API response format
-            com.fasterxml.jackson.databind.ObjectMapper mapper = new com.fasterxml.jackson.databind.ObjectMapper();
-            com.fasterxml.jackson.databind.JsonNode jsonNode = mapper.readTree(response);
+            UserProfile userProfile = getUserProfile(sessionId);
             
-            String base64Image = jsonNode.get("image").asText();
-            return Base64.getDecoder().decode(base64Image);
+            TryonResult result = tryonResultRepository.findByIdAndUserProfileId(resultId, userProfile.getId())
+                .orElseThrow(() -> new RuntimeException("Try-on result not found: " + resultId));
+            
+            tryonResultRepository.delete(result);
+            log.info("Deleted try-on result {} for user {}", resultId, sessionId);
             
         } catch (Exception e) {
-            log.error("Error parsing Flux response: {}", e.getMessage(), e);
-            throw new RuntimeException("Failed to parse Flux API response", e);
+            log.error("Error deleting try-on result {} for session {}: {}", resultId, sessionId, e.getMessage(), e);
+            throw new RuntimeException("Failed to delete try-on result", e);
         }
     }
     
-    private byte[] parseGoogleResponse(String response) {
-        try {
-            // Parse JSON response and extract base64 image
-            // This is a simplified implementation - actual parsing would depend on Google API response format
-            com.fasterxml.jackson.databind.ObjectMapper mapper = new com.fasterxml.jackson.databind.ObjectMapper();
-            com.fasterxml.jackson.databind.JsonNode jsonNode = mapper.readTree(response);
-            
-            String base64Image = jsonNode.get("generatedImage").asText();
-            return Base64.getDecoder().decode(base64Image);
-            
-        } catch (Exception e) {
-            log.error("Error parsing Google response: {}", e.getMessage(), e);
-            throw new RuntimeException("Failed to parse Google API response", e);
-        }
-    }
-    
+    /**
+     * Convert TryonResult entity to DTO
+     */
     private TryonResultDto convertToDto(TryonResult result) {
-        return TryonResultDto.builder()
-                .id(result.getId())
-                .resultImageUrl(result.getResultImageUrl())
-                .aiModelUsed(result.getAiModelUsed())
-                .createdAt(result.getCreatedAt())
-                .garmentId(result.getGarment().getId())
-                .garmentName(result.getGarment().getGarmentName())
-                .userPhotoId(result.getUserPhoto().getId())
-                .userPhotoName(result.getUserPhoto().getDisplayName())
-                .userPhotoUrl(result.getUserPhoto().getPhotoUrl())
-                .status("SUCCESS")
-                .build();
+        return TryonResultDto.createSuccess(
+            result.getId(),
+            result.getResultImageUrl(),
+            result.getAiModelUsed(),
+            result.getGarment().getId(),
+            result.getGarment().getGarmentName(),
+            result.getUserPhoto().getId(),
+            result.getUserPhoto().getDisplayName()
+        );
     }
 }

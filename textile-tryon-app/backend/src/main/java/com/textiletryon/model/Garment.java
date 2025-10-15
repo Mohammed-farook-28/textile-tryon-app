@@ -25,9 +25,9 @@ import java.util.List;
 @Table(name = "garments", indexes = {
     @Index(name = "idx_category", columnList = "category"),
     @Index(name = "idx_color", columnList = "color"),
-    @Index(name = "idx_garment_type", columnList = "garmentType"),
+    @Index(name = "idx_garment_type", columnList = "garment_type"),
     @Index(name = "idx_price", columnList = "price"),
-    @Index(name = "idx_name_id", columnList = "nameId")
+    @Index(name = "idx_name_id", columnList = "name_id")
 })
 @Data
 @NoArgsConstructor

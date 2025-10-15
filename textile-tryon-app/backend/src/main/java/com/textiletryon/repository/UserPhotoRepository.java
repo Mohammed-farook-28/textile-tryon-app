@@ -129,7 +129,7 @@ public interface UserPhotoRepository extends JpaRepository<UserPhoto, Long> {
      * Count photos uploaded today
      * @return number of photos uploaded today
      */
-    @Query("SELECT COUNT(up) FROM UserPhoto up WHERE DATE(up.uploadedAt) = CURRENT_DATE")
+    @Query("SELECT COUNT(up) FROM UserPhoto up WHERE up.uploadedAt >= CURRENT_DATE")
     Long countPhotosUploadedToday();
     
     /**

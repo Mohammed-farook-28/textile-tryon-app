@@ -129,7 +129,7 @@ public interface FavoriteRepository extends JpaRepository<Favorite, Long> {
      * Count favorites created today
      * @return number of favorites created today
      */
-    @Query("SELECT COUNT(f) FROM Favorite f WHERE DATE(f.createdAt) = CURRENT_DATE")
+    @Query("SELECT COUNT(f) FROM Favorite f WHERE f.createdAt >= CURRENT_DATE")
     Long countFavoritesCreatedToday();
     
     /**
@@ -145,7 +145,7 @@ public interface FavoriteRepository extends JpaRepository<Favorite, Long> {
      * @param days number of days to analyze
      * @return list of arrays containing [date, count]
      */
-    @Query("SELECT DATE(f.createdAt), COUNT(f) FROM Favorite f WHERE f.createdAt >= CURRENT_TIMESTAMP - :days DAY GROUP BY DATE(f.createdAt) ORDER BY DATE(f.createdAt)")
+    @Query("SELECT CAST(f.createdAt AS date), COUNT(f) FROM Favorite f WHERE f.createdAt >= CURRENT_TIMESTAMP - :days DAY GROUP BY CAST(f.createdAt AS date) ORDER BY CAST(f.createdAt AS date)")
     List<Object[]> getDailyFavoriteStats(@Param("days") int days);
     
     /**

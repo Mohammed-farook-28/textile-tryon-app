@@ -3,6 +3,7 @@ package com.textiletryon.service;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Value;
+import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.stereotype.Service;
 import org.springframework.web.multipart.MultipartFile;
 import software.amazon.awssdk.core.sync.RequestBody;
@@ -23,8 +24,9 @@ import java.util.UUID;
 @Service
 @RequiredArgsConstructor
 @Slf4j
+@ConditionalOnProperty(name = "app.file-storage.use-local", havingValue = "false", matchIfMissing = false)
 public class S3Service {
-    
+
     private final S3Client s3Client;
     
     @Value("${aws.s3.bucket-name}")

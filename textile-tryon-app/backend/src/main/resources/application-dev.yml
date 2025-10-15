@@ -3,46 +3,40 @@
 # DO NOT commit actual API keys to version control
 
 spring:
-  profiles:
-    active: dev
-  
-  # Database Configuration for Development
+  # Database Configuration for Development (Using H2 for easier setup)
   datasource:
-    url: jdbc:mysql://localhost:3306/textile_tryon
-    username: root
-    password: password
-    driver-class-name: com.mysql.cj.jdbc.Driver
+    url: jdbc:h2:mem:testdb;DB_CLOSE_ON_EXIT=FALSE;MODE=MySQL
+    username: sa
+    password: 
+    driver-class-name: org.h2.Driver
   
   # JPA Configuration for Development
   jpa:
     hibernate:
-      ddl-auto: update
+      ddl-auto: create-drop
+    database-platform: org.hibernate.dialect.H2Dialect
     show-sql: true
     properties:
       hibernate:
         format_sql: true
 
-# AI API Configuration
+# AI API Configuration - Using Gemini only
 ai:
-  flux:
-    api-key: c037aced-dc2e-4c44-9a3a-405741a274cd
-    api-url: https://api.flux.ai/v1/
-    timeout: 60000
   google:
     gemini:
-      api-key: AIzaSyArpY6cRzLdnMh5kIWjws5j0-thX_Liyaw
-      api-url: https://generativelanguage.googleapis.com/v1beta/
-      model: gemini-2.0-flash
+      api-key: ${GOOGLE_GEMINI_API_KEY}
+      api-url: ${GOOGLE_GEMINI_API_URL:https://generativelanguage.googleapis.com/v1beta/}
+      model: ${GOOGLE_GEMINI_MODEL:gemini-2.5-flash-image}
       timeout: 60000
 
-# AWS Configuration (Replace with your actual AWS credentials)
+
 aws:
-  access-key: your_aws_access_key_here
-  secret-key: your_aws_secret_key_here
-  region: us-east-1
+  access-key: ${AWS_ACCESS_KEY_ID}
+  secret-key: ${AWS_SECRET_ACCESS_KEY}
+  region: ${AWS_REGION:us-east-1}
   s3:
-    bucket-name: textile-images-dev
-    base-url: https://textile-images-dev.s3.us-east-1.amazonaws.com
+    bucket-name: ${AWS_BUCKET_NAME:textile-images-dev}
+    base-url: https://${aws.s3.bucket-name}.s3.${aws.region}.amazonaws.com
 
 # CORS Configuration for Development
 app:
