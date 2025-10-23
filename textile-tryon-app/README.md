@@ -138,63 +138,53 @@ DELETE /api/tryon/results/{id}       # Delete try-on result
 GET /api/tryon/models               # Get available AI models
 ```
 
-## 🚀 Setup Instructions
+## 🚀 Quick Start
 
 ### Prerequisites
 - Java 17+
 - Node.js 18+
-- MySQL 8.0+
-- AWS Account with S3 access
-- AI API keys (Google/Flux)
+- Maven 3.6+
 
-### Backend Setup
+**Note**: MySQL is NOT required! The app uses H2 in-memory database for development.
 
-1. **Database Setup**
-   ```sql
-   CREATE DATABASE textile_tryon;
-   # Run schema.sql to create tables
-   ```
+### Setup Steps
 
-2. **Environment Configuration**
-   Create `.env` file in backend directory:
-   ```
-   DB_URL=jdbc:mysql://localhost:3306/textile_tryon
-   DB_USERNAME=root
-   DB_PASSWORD=your_password
-   
-   AWS_ACCESS_KEY=your_aws_access_key
-   AWS_SECRET_KEY=your_aws_secret_key
-   AWS_BUCKET_NAME=textile-images
-   AWS_REGION=us-east-1
-   
-   FLUX_API_KEY=your_flux_api_key
-   GOOGLE_TRYON_API_KEY=your_google_api_key
-   ```
-
-3. **Run Backend**
+1. **Clone and Configure Environment**
    ```bash
+   git clone <repo-url>
+   cd textile-tryon-app
+   
+   # Create environment file from template
+   cp .env.example .env
+   # Edit .env and add your API keys (AWS, Google Gemini)
+   ```
+
+2. **Start Backend**
+   ```bash
+   # Load environment variables
+   export $(cat .env | xargs)
+   
    cd backend
    mvn spring-boot:run
    ```
 
-### Frontend Setup
-
-1. **Install Dependencies**
+3. **Start Frontend** (in a new terminal)
    ```bash
    cd frontend
    npm install
-   ```
-
-2. **Environment Configuration**
-   Create `.env` file in frontend directory:
-   ```
-   REACT_APP_API_BASE_URL=http://localhost:8080/api
-   ```
-
-3. **Run Frontend**
-   ```bash
    npm start
    ```
+
+4. **Access Application**
+   - Frontend: http://localhost:3000
+   - Backend API: http://localhost:8080/api
+
+### 📖 Detailed Setup Guides
+
+- **New to this project?** → Read [`SETUP_NEW_DEVICE.md`](./SETUP_NEW_DEVICE.md)
+- **Having issues?** → Check [`SETUP_NEW_DEVICE.md`](./SETUP_NEW_DEVICE.md) troubleshooting section
+- **Pushing to Git?** → Review [`SECURITY_CHANGES.md`](./SECURITY_CHANGES.md)
+- **Deployment checklist** → See [`DEPLOYMENT_CHECKLIST.md`](./DEPLOYMENT_CHECKLIST.md)
 
 ## 🔒 Security Considerations
 
@@ -222,12 +212,11 @@ GET /api/tryon/models               # Get available AI models
 - Sales analytics and reporting
 - Social features (sharing, reviews)
 
-## 🏃‍♂️ Getting Started
+## 🔐 Environment Variables
 
-1. Set up the database using `database/schema.sql`
-2. Configure environment variables for both frontend and backend
-3. Start the backend server on port 8080
-4. Start the frontend development server on port 3000
-5. Access the application at `http://localhost:3000`
+All sensitive credentials are managed through a `.env` file:
+- ✅ `.env` is gitignored (never committed)
+- ✅ `.env.example` template provided
+- ✅ See [`ENV_SETUP.md`](./ENV_SETUP.md) for configuration details
 
 The application provides a complete textile shopping experience with cutting-edge AI-powered virtual try-on capabilities, making it easy for customers to visualize how garments will look on them before making a purchase.

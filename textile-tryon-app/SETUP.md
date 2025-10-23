@@ -70,14 +70,11 @@ aws:
 
 # AI API Configuration
 ai:
-  flux:
-    api-key: c037aced-dc2e-4c44-9a3a-405741a274cd
-    api-url: https://api.flux.ai/v1/
-    timeout: 60000
   google:
-    tryon:
-      api-key: your_google_api_key
-      api-url: https://api.google.com/tryon/v1/
+    gemini:
+      api-key: ${GOOGLE_GEMINI_API_KEY}
+      api-url: ${GOOGLE_GEMINI_API_URL:https://generativelanguage.googleapis.com/v1beta/}
+      model: ${GOOGLE_GEMINI_MODEL:gemini-2.5-flash-image}
       timeout: 60000
 
 # CORS Configuration
@@ -154,16 +151,12 @@ The frontend will start on `http://localhost:3000`
 
 ## 🤖 AI API Configuration
 
-### 1. Flux API (Already Configured)
-- **API Key**: `c037aced-dc2e-4c44-9a3a-405741a274cd`
-- **Endpoint**: `https://api.flux.ai/v1/`
-- This key is already configured in the application
-
-### 2. Google Gemini API (Integrated)
-- **API Key**: `AIzaSyArpY6cRzLdnMh5kIWjws5j0-thX_Liyaw`
-- **Model**: `gemini-2.0-flash`
-- **Purpose**: Enhances try-on prompts with intelligent descriptions
-- This key is already configured in the application
+### Google Gemini API
+- **Configuration**: Set in `.env` file
+- **API Key**: `GOOGLE_GEMINI_API_KEY` (environment variable)
+- **Model**: `gemini-2.5-flash-image`
+- **Purpose**: AI-powered virtual try-on generation
+- See `ENV_SETUP.md` for configuration details
 
 ## 🏃‍♂️ Running the Application
 

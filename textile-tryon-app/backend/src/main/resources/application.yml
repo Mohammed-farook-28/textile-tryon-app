@@ -59,8 +59,8 @@ server:
 
 # AWS Configuration
 aws:
-  access-key: ${AWS_ACCESS_KEY:your_access_key}
-  secret-key: ${AWS_SECRET_KEY:your_secret_key}
+  access-key: ${AWS_ACCESS_KEY_ID}
+  secret-key: ${AWS_SECRET_ACCESS_KEY}
   region: ${AWS_REGION:us-east-1}
   s3:
     bucket-name: ${AWS_BUCKET_NAME:textile-images}
