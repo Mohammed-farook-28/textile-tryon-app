@@ -120,10 +120,9 @@ public interface GarmentRepository extends JpaRepository<Garment, Long>, JpaSpec
      * @return page of garments matching all filters
      */
     @Query("SELECT g FROM Garment g WHERE " +
-           "(:categories IS NULL OR g.category IN :categories) AND " +
-           "(:colors IS NULL OR g.color IN :colors) AND " +
-           "g.price >= :minPrice AND g.price <= :maxPrice AND " +
-           "g.stockQuantity > 0")
+           "g.price >= :minPrice AND g.price <= :maxPrice " +
+           "AND (:categories IS NULL OR g.category IN :categories) " +
+           "AND (:colors IS NULL OR g.color IN :colors)")
     Page<Garment> findWithFilters(
             @Param("categories") List<String> categories,
             @Param("colors") List<String> colors,
@@ -171,7 +170,7 @@ public interface GarmentRepository extends JpaRepository<Garment, Long>, JpaSpec
      * Get price range (min and max prices)
      * @return array with [minPrice, maxPrice]
      */
-    @Query("SELECT MIN(g.price), MAX(g.price) FROM Garment g")
+    @Query("SELECT MIN(g.price), MAX(g.price) FROM Garment g WHERE g.price IS NOT NULL")
     Object[] findPriceRange();
     
     /**

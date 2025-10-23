@@ -1,0 +1,124 @@
+version: '3.8'
+
+services:
+  # RAMRAJ Backend Service
+  backend:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
+    container_name: ramraj-backend
+    ports:
+      - "8080:8080"
+    environment:
+      - SPRING_PROFILES_ACTIVE=docker
+      - GOOGLE_API_KEY=${GOOGLE_API_KEY}
+      - AWS_S3_BUCKET=${AWS_S3_BUCKET}
+      - AWS_ACCESS_KEY=${AWS_ACCESS_KEY}
+      - AWS_SECRET_KEY=${AWS_SECRET_KEY}
+      - DATABASE_URL=jdbc:postgresql://database:5432/ramraj_db
+      - DATABASE_USERNAME=ramraj_user
+      - DATABASE_PASSWORD=${DATABASE_PASSWORD}
+    depends_on:
+      - database
+    networks:
+      - ramraj-network
+    volumes:
+      - backend-uploads:/app/uploads
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8080/api/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 40s
+
+  # RAMRAJ Frontend Service
+  frontend:
+    build:
+      context: ./frontend
+      dockerfile: Dockerfile
+    container_name: ramraj-frontend
+    ports:
+      - "3000:80"
+    environment:
+      - REACT_APP_API_URL=http://localhost:8080/api
+    depends_on:
+      - backend
+    networks:
+      - ramraj-network
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:80"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+
+  # PostgreSQL Database
+  database:
+    image: postgres:15-alpine
+    container_name: ramraj-database
+    environment:
+      - POSTGRES_DB=ramraj_db
+      - POSTGRES_USER=ramraj_user
+      - POSTGRES_PASSWORD=${DATABASE_PASSWORD}
+    ports:
+      - "5432:5432"
+    networks:
+      - ramraj-network
+    volumes:
+      - postgres-data:/var/lib/postgresql/data
+      - ./database/init.sql:/docker-entrypoint-initdb.d/init.sql:ro
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ramraj_user -d ramraj_db"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+
+  # Redis Cache (Optional)
+  redis:
+    image: redis:7-alpine
+    container_name: ramraj-redis
+    ports:
+      - "6379:6379"
+    networks:
+      - ramraj-network
+    volumes:
+      - redis-data:/data
+    command: redis-server --appendonly yes
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+
+  # Nginx Reverse Proxy
+  nginx:
+    image: nginx:alpine
+    container_name: ramraj-nginx
+    ports:
+      - "80:80"
+      - "443:443"
+    volumes:
+      - ./nginx/nginx.conf:/etc/nginx/nginx.conf:ro
+      - ./nginx/ssl:/etc/nginx/ssl:ro
+    depends_on:
+      - frontend
+      - backend
+    networks:
+      - ramraj-network
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:80"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+
+networks:
+  ramraj-network:
+    driver: bridge
+    name: ramraj-network
+
+volumes:
+  postgres-data:
+    name: ramraj-postgres-data
+  redis-data:
+    name: ramraj-redis-data
+  backend-uploads:
+    name: ramraj-backend-uploads

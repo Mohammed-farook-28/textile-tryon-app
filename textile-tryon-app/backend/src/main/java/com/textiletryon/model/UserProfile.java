@@ -21,7 +21,7 @@ import java.util.List;
  */
 @Entity
 @Table(name = "user_profiles", indexes = {
-    @Index(name = "idx_session_id", columnList = "sessionId")
+    @Index(name = "idx_session_id", columnList = "session_id")
 })
 @Data
 @NoArgsConstructor

@@ -66,6 +66,14 @@ public interface TryonResultRepository extends JpaRepository<TryonResult, Long> 
             Long userProfileId, Long garmentId, Long userPhotoId);
     
     /**
+     * Find try-on result by ID and user profile ID
+     * @param resultId the ID of the try-on result
+     * @param userProfileId the ID of the user profile
+     * @return Optional containing the try-on result if found
+     */
+    Optional<TryonResult> findByIdAndUserProfileId(Long resultId, Long userProfileId);
+    
+    /**
      * Count try-on results for a specific user profile
      * @param userProfileId the ID of the user profile
      * @return number of try-on results for the user
@@ -158,7 +166,7 @@ public interface TryonResultRepository extends JpaRepository<TryonResult, Long> 
      * Count try-on results created today
      * @return number of try-on results created today
      */
-    @Query("SELECT COUNT(tr) FROM TryonResult tr WHERE DATE(tr.createdAt) = CURRENT_DATE")
+    @Query("SELECT COUNT(tr) FROM TryonResult tr WHERE tr.createdAt >= CURRENT_DATE")
     Long countTryonResultsCreatedToday();
     
     /**
@@ -181,7 +189,7 @@ public interface TryonResultRepository extends JpaRepository<TryonResult, Long> 
      * Get hourly try-on statistics for today (for performance monitoring)
      * @return list of arrays containing [hour, count]
      */
-    @Query("SELECT HOUR(tr.createdAt), COUNT(tr) FROM TryonResult tr WHERE DATE(tr.createdAt) = CURRENT_DATE GROUP BY HOUR(tr.createdAt) ORDER BY HOUR(tr.createdAt)")
+    @Query("SELECT EXTRACT(HOUR FROM tr.createdAt), COUNT(tr) FROM TryonResult tr WHERE tr.createdAt >= CURRENT_DATE GROUP BY EXTRACT(HOUR FROM tr.createdAt) ORDER BY EXTRACT(HOUR FROM tr.createdAt)")
     List<Object[]> getHourlyTryonStatsToday();
     
     /**
@@ -263,6 +271,6 @@ public interface TryonResultRepository extends JpaRepository<TryonResult, Long> 
      * @param limit maximum number of results
      * @return list of try-on results for trending garments
      */
-    @Query("SELECT tr FROM TryonResult tr WHERE tr.createdAt >= CURRENT_TIMESTAMP - :days DAY AND tr.garment.id IN (SELECT tr2.garment.id FROM TryonResult tr2 WHERE tr2.createdAt >= CURRENT_TIMESTAMP - :days DAY GROUP BY tr2.garment.id ORDER BY COUNT(tr2) DESC) ORDER BY tr.createdAt DESC")
-    List<TryonResult> findTryonResultsForTrendingGarments(@Param("days") int days, @Param("limit") int limit);
+    @Query(value = "SELECT tr FROM TryonResult tr WHERE tr.createdAt >= CURRENT_TIMESTAMP - :days DAY AND tr.garment.id IN (SELECT tr2.garment.id FROM TryonResult tr2 WHERE tr2.createdAt >= CURRENT_TIMESTAMP - :days DAY GROUP BY tr2.garment.id ORDER BY COUNT(tr2) DESC) ORDER BY tr.createdAt DESC")
+    List<TryonResult> findTryonResultsForTrendingGarments(@Param("days") int days, Pageable pageable);
 }

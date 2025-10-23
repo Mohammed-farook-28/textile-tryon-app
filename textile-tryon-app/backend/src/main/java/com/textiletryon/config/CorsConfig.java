@@ -8,6 +8,7 @@ import org.springframework.web.cors.CorsConfigurationSource;
 import org.springframework.web.cors.UrlBasedCorsConfigurationSource;
 import org.springframework.web.servlet.config.annotation.CorsRegistry;
 import org.springframework.web.servlet.config.annotation.WebMvcConfigurer;
+import org.springframework.lang.NonNull;
 
 import java.util.Arrays;
 import java.util.List;
@@ -34,7 +35,7 @@ public class CorsConfig implements WebMvcConfigurer {
     private boolean allowCredentials;
     
     @Override
-    public void addCorsMappings(CorsRegistry registry) {
+    public void addCorsMappings(@NonNull CorsRegistry registry) {
         List<String> origins = Arrays.asList(allowedOrigins.split(","));
         List<String> methods = Arrays.asList(allowedMethods.split(","));
         

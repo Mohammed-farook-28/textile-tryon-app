@@ -2,6 +2,7 @@ package com.textiletryon.service;
 
 import com.textiletryon.dto.GarmentDto;
 import com.textiletryon.dto.GarmentFilterDto;
+import com.textiletryon.dto.PriceRangeDto;
 import com.textiletryon.model.Garment;
 import com.textiletryon.model.GarmentImage;
 import com.textiletryon.repository.GarmentRepository;
@@ -19,7 +20,6 @@ import org.springframework.web.multipart.MultipartFile;
 import java.math.BigDecimal;
 import java.util.List;
 import java.util.Optional;
-import java.util.stream.Collectors;
 
 /**
  * Service for garment management operations
@@ -37,7 +37,7 @@ public class GarmentService {
     
     private final GarmentRepository garmentRepository;
     private final GarmentImageRepository garmentImageRepository;
-    private final S3Service s3Service;
+    private final FileStorageService fileStorageService;
     
     /**
      * Create a new garment
@@ -106,7 +106,7 @@ public class GarmentService {
         // Delete associated images from S3
         List<String> imageUrls = garmentImageRepository.findImageUrlsByGarmentId(id);
         if (!imageUrls.isEmpty()) {
-            s3Service.deleteFiles(imageUrls);
+            fileStorageService.deleteFiles(imageUrls);
         }
         
         garmentRepository.delete(garment);
@@ -168,9 +168,30 @@ public class GarmentService {
     /**
      * Get price range
      */
-    public BigDecimal[] getPriceRange() {
-        Object[] range = garmentRepository.findPriceRange();
-        return new BigDecimal[]{(BigDecimal) range[0], (BigDecimal) range[1]};
+    public PriceRangeDto getPriceRange() {
+        try {
+            Object[] range = garmentRepository.findPriceRange();
+            if (range == null || range.length < 2) {
+                return PriceRangeDto.builder()
+                    .minPrice(BigDecimal.ZERO)
+                    .maxPrice(BigDecimal.ZERO)
+                    .build();
+            }
+            
+            BigDecimal minPrice = range[0] != null ? (BigDecimal) range[0] : BigDecimal.ZERO;
+            BigDecimal maxPrice = range[1] != null ? (BigDecimal) range[1] : BigDecimal.ZERO;
+            
+            return PriceRangeDto.builder()
+                .minPrice(minPrice)
+                .maxPrice(maxPrice)
+                .build();
+        } catch (Exception e) {
+            log.error("Error getting price range: {}", e.getMessage());
+            return PriceRangeDto.builder()
+                .minPrice(BigDecimal.ZERO)
+                .maxPrice(BigDecimal.ZERO)
+                .build();
+        }
     }
     
     /**
@@ -181,7 +202,7 @@ public class GarmentService {
         Garment garment = garmentRepository.findById(garmentId)
                 .orElseThrow(() -> new IllegalArgumentException("Garment not found with ID: " + garmentId));
         
-        String imageUrl = s3Service.uploadGarmentImage(imageFile, garmentId);
+        String imageUrl = fileStorageService.uploadGarmentImage(imageFile, garmentId);
         
         // If this is set as primary, clear other primary images
         if (isPrimary) {
@@ -204,6 +225,66 @@ public class GarmentService {
     }
     
     /**
+     * Create a new garment with images
+     */
+    @Transactional
+    public GarmentDto createGarmentWithImages(GarmentDto garmentDto, List<MultipartFile> images, Integer primaryImageIndex) {
+        // Generate a nameId from the garment name
+        String nameId = garmentDto.getGarmentName()
+                .toLowerCase()
+                .replaceAll("[^a-z0-9]+", "-")
+                .replaceAll("^-|-$", "");
+        
+        // Make sure nameId is unique by appending a counter if needed
+        String originalNameId = nameId;
+        int counter = 1;
+        while (garmentRepository.existsByNameId(nameId)) {
+            nameId = originalNameId + "-" + counter++;
+        }
+        
+        // Create garment entity
+        Garment garment = Garment.builder()
+                .nameId(nameId)
+                .garmentName(garmentDto.getGarmentName())
+                .category(garmentDto.getCategory())
+                .subcategory(garmentDto.getSubcategory())
+                .color(garmentDto.getColor())
+                .patternStyle(garmentDto.getPatternStyle())
+                .price(garmentDto.getPrice())
+                .stockQuantity(garmentDto.getStockQuantity())
+                .build();
+        
+        garment = garmentRepository.save(garment);
+        log.info("Created garment with ID: {} and nameId: {}", garment.getId(), garment.getNameId());
+        
+        // Upload and save all images
+        for (int i = 0; i < images.size(); i++) {
+            MultipartFile imageFile = images.get(i);
+            boolean isPrimary = (i == primaryImageIndex);
+            
+            try {
+                String imageUrl = fileStorageService.uploadGarmentImage(imageFile, garment.getId());
+                
+                GarmentImage garmentImage = GarmentImage.builder()
+                        .garment(garment)
+                        .imageUrl(imageUrl)
+                        .isPrimary(isPrimary)
+                        .displayOrder(i + 1)
+                        .build();
+                
+                garmentImageRepository.save(garmentImage);
+                log.info("Added image {} to garment {}: {} (primary: {})", i + 1, garment.getId(), imageUrl, isPrimary);
+                
+            } catch (Exception e) {
+                log.error("Failed to upload image {} for garment {}: {}", i, garment.getId(), e.getMessage(), e);
+                throw new RuntimeException("Failed to upload image: " + e.getMessage(), e);
+            }
+        }
+        
+        return convertToDto(garment);
+    }
+    
+    /**
      * Remove image from garment
      */
     @Transactional
@@ -215,7 +296,7 @@ public class GarmentService {
             throw new IllegalArgumentException("Image does not belong to the specified garment");
         }
         
-        s3Service.deleteFile(image.getImageUrl());
+        fileStorageService.deleteFile(image.getImageUrl());
         garmentImageRepository.delete(image);
         
         log.info("Removed image {} from garment {}", imageId, garmentId);

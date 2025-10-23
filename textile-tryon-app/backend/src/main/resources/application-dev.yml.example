@@ -1,0 +1,60 @@
+# Development Environment Configuration
+# Copy this file to application-dev.yml and replace the placeholder values with your actual credentials
+# IMPORTANT: Never commit application-dev.yml with real credentials to version control
+
+spring:
+  # Database Configuration for Development (Using H2 for easier setup)
+  datasource:
+    url: jdbc:h2:mem:testdb;DB_CLOSE_ON_EXIT=FALSE;MODE=MySQL
+    username: sa
+    password: 
+    driver-class-name: org.h2.Driver
+  
+  # JPA Configuration for Development
+  jpa:
+    hibernate:
+      ddl-auto: create-drop
+    database-platform: org.hibernate.dialect.H2Dialect
+    show-sql: true
+    properties:
+      hibernate:
+        format_sql: true
+
+# AI API Configuration - Using Gemini only
+# Get your API key from: https://makersuite.google.com/app/apikey
+ai:
+  google:
+    gemini:
+      api-key: YOUR_GOOGLE_GEMINI_API_KEY_HERE  # Replace with your actual API key
+      api-url: https://generativelanguage.googleapis.com/v1beta/
+      model: gemini-2.5-flash-image
+      timeout: 60000
+
+# AWS S3 Configuration
+# Get your credentials from AWS Console: https://console.aws.amazon.com/iam/
+aws:
+  access-key: YOUR_AWS_ACCESS_KEY_HERE  # Replace with your AWS access key
+  secret-key: YOUR_AWS_SECRET_KEY_HERE  # Replace with your AWS secret key
+  region: us-east-1
+  s3:
+    bucket-name: textile-images-dev  # Create this bucket in AWS S3
+    base-url: https://textile-images-dev.s3.us-east-1.amazonaws.com
+
+# CORS Configuration for Development
+app:
+  cors:
+    allowed-origins: http://localhost:3000,http://127.0.0.1:3000
+    allowed-methods: GET,POST,PUT,DELETE,OPTIONS
+    allowed-headers: "*"
+    allow-credentials: true
+
+# Logging Configuration for Development
+logging:
+  level:
+    com.textiletryon: DEBUG
+    org.springframework.web: DEBUG
+    org.hibernate.SQL: DEBUG
+    org.hibernate.type.descriptor.sql.BasicBinder: TRACE
+  pattern:
+    console: "%d{yyyy-MM-dd HH:mm:ss} [%thread] %-5level %logger{36} - %msg%n"
+

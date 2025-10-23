@@ -61,7 +61,7 @@ public interface UserProfileRepository extends JpaRepository<UserProfile, Long> 
      * Count user profiles created today
      * @return number of profiles created today
      */
-    @Query("SELECT COUNT(up) FROM UserProfile up WHERE DATE(up.createdAt) = CURRENT_DATE")
+    @Query("SELECT COUNT(up) FROM UserProfile up WHERE up.createdAt >= CURRENT_DATE")
     Long countProfilesCreatedToday();
     
     /**
@@ -151,7 +151,7 @@ public interface UserProfileRepository extends JpaRepository<UserProfile, Long> 
      * @param days number of days to analyze
      * @return list of arrays containing [date, count]
      */
-    @Query("SELECT DATE(up.createdAt), COUNT(up) FROM UserProfile up WHERE up.createdAt >= CURRENT_TIMESTAMP - :days DAY GROUP BY DATE(up.createdAt) ORDER BY DATE(up.createdAt)")
+    @Query("SELECT CAST(up.createdAt AS date), COUNT(up) FROM UserProfile up WHERE up.createdAt >= CURRENT_TIMESTAMP - :days DAY GROUP BY CAST(up.createdAt AS date) ORDER BY CAST(up.createdAt AS date)")
     List<Object[]> getDailyRegistrationStats(@Param("days") int days);
     
     /**

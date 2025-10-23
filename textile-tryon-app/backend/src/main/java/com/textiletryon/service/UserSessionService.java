@@ -30,7 +30,7 @@ public class UserSessionService {
     
     private final UserProfileRepository userProfileRepository;
     private final UserPhotoRepository userPhotoRepository;
-    private final S3Service s3Service;
+    private final FileStorageService fileStorageService;
     
     /**
      * Create or get user profile for a session
@@ -96,7 +96,7 @@ public class UserSessionService {
         UserProfile userProfile = getUserProfile(sessionId);
         
         // Upload to S3
-        String photoUrl = s3Service.uploadUserPhoto(photoFile, userProfile.getId());
+        String photoUrl = fileStorageService.uploadUserPhoto(photoFile, userProfile.getId());
         
         // Save to database
         UserPhoto userPhoto = UserPhoto.builder()
@@ -142,7 +142,7 @@ public class UserSessionService {
                 .orElseThrow(() -> new IllegalArgumentException("Photo not found or does not belong to user"));
         
         // Delete from S3
-        s3Service.deleteFile(photo.getPhotoUrl());
+        fileStorageService.deleteFile(photo.getPhotoUrl());
         
         // Delete from database
         userPhotoRepository.delete(photo);
@@ -231,7 +231,7 @@ public class UserSessionService {
             // Delete associated photos from S3
             List<String> photoUrls = userPhotoRepository.findPhotoUrlsByUserProfileId(profile.getId());
             if (!photoUrls.isEmpty()) {
-                s3Service.deleteFiles(photoUrls);
+                fileStorageService.deleteFiles(photoUrls);
             }
             
             // Delete from database (cascade will handle related records)
